@@ -9,7 +9,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
     <section className="bg-sand/40 py-24">
       <div className="container-luxury">
         <Reveal className="text-center">
-          <p className="eyebrow">What they're saying</p>
+          <p className="eyebrow">What they&apos;re saying</p>
           <h2 className="mt-2 font-display text-4xl">Loved, Worn, Trusted</h2>
         </Reveal>
 
@@ -22,7 +22,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                     <Star key={idx} className="h-4 w-4 fill-clay" />
                   ))}
                 </div>
-                <p className="mt-4 font-display text-lg italic text-graphite">"{t.quote}"</p>
+                <p className="mt-4 font-display text-lg italic text-graphite">&quot;{t.quote}&quot;</p>
                 <footer className="mt-6 text-sm uppercase tracking-widest text-charcoal">
                   {t.name}
                 </footer>
@@ -34,3 +34,4 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
     </section>
   );
 }
+
