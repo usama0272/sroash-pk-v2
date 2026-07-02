@@ -18,7 +18,7 @@ const formSchema = z.object({
   city: z.string().min(2, "City is required"),
   province: z.string().min(2, "Province is required"),
   postalCode: z.string().optional(),
-  paymentMethod: z.enum(["STRIPE", "JAZZCASH", "EASYPAISA", "BANK_TRANSFER", "COD"]),
+  paymentMethod: z.enum(["COD"]),
   couponCode: z.string().optional(),
 });
 
@@ -26,10 +26,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 const PAYMENT_OPTIONS: { value: FormValues["paymentMethod"]; label: string }[] = [
   { value: "COD", label: "Cash on Delivery" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer" },
-  { value: "JAZZCASH", label: "JazzCash" },
-  { value: "EASYPAISA", label: "EasyPaisa" },
-  { value: "STRIPE", label: "Credit / Debit Card" },
 ];
 
 export function CheckoutForm() {
@@ -148,3 +144,4 @@ function Field({
     </div>
   );
 }
+

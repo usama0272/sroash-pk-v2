@@ -9,7 +9,7 @@ export const checkoutSchema = z.object({
   city: z.string().min(2, "City is required"),
   province: z.string().min(2, "Province is required"),
   postalCode: z.string().optional(),
-  paymentMethod: z.enum(["STRIPE", "JAZZCASH", "EASYPAISA", "BANK_TRANSFER", "COD"]),
+  paymentMethod: z.enum(["COD"]),
   couponCode: z.string().optional(),
   items: z
     .array(
