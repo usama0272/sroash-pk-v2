@@ -36,7 +36,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
             className="absolute inset-0"
           >
             <Image
-              src={images[active] ?? images[0]}
+              src={images[active] ?? images[0] ?? ""}
               alt={alt}
               fill
               priority
