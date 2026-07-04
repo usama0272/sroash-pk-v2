@@ -7,28 +7,35 @@ import { generateOrderNumber } from "@/lib/utils";
 import { getPaymentProvider } from "@/features/payments/payment-gateway";
 import { checkoutSchema, type CheckoutInput } from "@/features/checkout/validations/checkout.schema";
 
-const SHIPPING_FEE = 350; // flat-rate domestic shipping in PKR
+const SHIPPING_FEE = 350;
 const FREE_SHIPPING_THRESHOLD = 15000;
 
 export async function placeOrder(input: CheckoutInput) {
-  const session = await auth();
-  if (!session?.user) {
-    return { error: "Please sign in to complete checkout." };
-  }
-
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid checkout data." };
   }
   const data = parsed.data;
 
-  // Re-derive authoritative pricing and stock from the database — never trust client-sent prices.
+  const session = await auth();
+  let userId: string;
+
+  if (session?.user) {
+    userId = session.user.id;
+  } else {
+    const guestUser = await db.user.upsert({
+      where: { email: data.email },
+      update: { name: data.fullName, phone: data.phone },
+      create: { email: data.email, name: data.fullName, phone: data.phone, role: "CUSTOMER" },
+    });
+    userId = guestUser.id;
+  }
+
   const variantIds = data.items.map((i) => i.variantId);
   const variants = await db.productVariant.findMany({
     where: { id: { in: variantIds } },
     include: { product: true },
   });
-
   const variantMap = new Map(variants.map((v) => [v.id, v]));
 
   let subtotal = 0;
@@ -50,11 +57,7 @@ export async function placeOrder(input: CheckoutInput) {
     if (variant.stock < item.quantity) {
       return { error: `Only ${variant.stock} left in stock for ${item.name} (${item.size}/${item.color}).` };
     }
-
-    const unitPrice = variant.product.salePrice
-      ? Number(variant.product.salePrice)
-      : Number(variant.product.price);
-
+    const unitPrice = variant.product.salePrice ? Number(variant.product.salePrice) : Number(variant.product.price);
     subtotal += unitPrice * item.quantity;
     orderItemsData.push({
       productId: variant.productId,
@@ -67,38 +70,28 @@ export async function placeOrder(input: CheckoutInput) {
     });
   }
 
-  // Coupon validation
   let discount = 0;
   let couponId: string | null = null;
   if (data.couponCode) {
     const coupon = await db.coupon.findUnique({ where: { code: data.couponCode.toUpperCase() } });
-    if (!coupon || !coupon.isActive) {
-      return { error: "Invalid coupon code." };
-    }
-    if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-      return { error: "This coupon has expired." };
-    }
-    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-      return { error: "This coupon has reached its usage limit." };
-    }
+    if (!coupon || !coupon.isActive) return { error: "Invalid coupon code." };
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) return { error: "This coupon has expired." };
+    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return { error: "This coupon has reached its usage limit." };
     if (coupon.minOrderValue && subtotal < Number(coupon.minOrderValue)) {
       return { error: `Minimum order value for this coupon is PKR ${coupon.minOrderValue}.` };
     }
-
-    discount =
-      coupon.type === "PERCENTAGE" ? subtotal * (Number(coupon.value) / 100) : Number(coupon.value);
+    discount = coupon.type === "PERCENTAGE" ? subtotal * (Number(coupon.value) / 100) : Number(coupon.value);
     if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
     couponId = coupon.id;
   }
 
   const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const taxAmount = 0; // retail prices are tax-inclusive
-  const total = Math.max(0, subtotal + shippingFee + taxAmount - discount);
+  const total = Math.max(0, subtotal + shippingFee - discount);
 
   const order = await db.$transaction(async (tx) => {
     const address = await tx.address.create({
       data: {
-        userId: session.user.id,
+        userId,
         fullName: data.fullName,
         phone: data.phone,
         line1: data.line1,
@@ -112,10 +105,10 @@ export async function placeOrder(input: CheckoutInput) {
     const created = await tx.order.create({
       data: {
         orderNumber: generateOrderNumber(),
-        userId: session.user.id,
+        userId,
         subtotal,
         shippingFee,
-        taxAmount,
+        taxAmount: 0,
         discount,
         total,
         paymentMethod: data.paymentMethod,
@@ -126,15 +119,9 @@ export async function placeOrder(input: CheckoutInput) {
     });
 
     for (const item of orderItemsData) {
-      await tx.productVariant.update({
-        where: { id: item.variantId },
-        data: { stock: { decrement: item.quantity } },
-      });
+      await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
     }
-
-    if (couponId) {
-      await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
-    }
+    if (couponId) await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
 
     return created;
   });
@@ -151,10 +138,8 @@ export async function placeOrder(input: CheckoutInput) {
   if (paymentResult.paymentRef) {
     await db.order.update({ where: { id: order.id }, data: { paymentRef: paymentResult.paymentRef } });
   }
-
   if (paymentResult.requiresRedirect && paymentResult.redirectUrl) {
     redirect(paymentResult.redirectUrl);
   }
-
   redirect(`/checkout/success?order=${order.orderNumber}`);
 }

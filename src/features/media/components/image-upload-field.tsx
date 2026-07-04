@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { X } from "lucide-react";
+import { useState } from "react";
+import { ImagePlus, X, Loader2 } from "lucide-react";
 
 export function ImageUploadField({
   label,
@@ -12,11 +13,28 @@ export function ImageUploadField({
   value: string | null;
   onChange: (url: string | null) => void;
 }) {
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.url) onChange(data.url);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div>
       <p className="mb-1.5 text-xs uppercase tracking-wide text-graphite">{label}</p>
-      {value && (
-        <div className="relative mb-2 aspect-[3/4] w-32 overflow-hidden border border-line">
+      {value ? (
+        <div className="relative aspect-[3/4] w-32 overflow-hidden border border-line">
           <Image src={value} alt={label} fill className="object-cover" sizes="128px" />
           <button
             type="button"
@@ -27,15 +45,13 @@ export function ImageUploadField({
             <X className="h-3 w-3" />
           </button>
         </div>
+      ) : (
+        <label className="flex aspect-[3/4] w-32 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-line text-graphite hover:border-charcoal">
+          {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+          <span className="text-xs">{uploading ? "Uploading..." : "Upload from computer"}</span>
+          <input type="file" accept="image/*" onChange={handleFile} className="hidden" disabled={uploading} />
+        </label>
       )}
-      <input
-        type="url"
-        placeholder="https://images.unsplash.com/..."
-        defaultValue={value ?? ""}
-        onBlur={(e) => onChange(e.target.value || null)}
-        className="input-luxury"
-      />
-      <p className="mt-1 text-[11px] text-graphite">Paste any image URL for now (Cloudinary upload can be wired up later).</p>
     </div>
   );
 }
