@@ -12,7 +12,7 @@ export function ProductRowActions({ productId, isActive }: { productId: string; 
   function handleToggle() {
     startTransition(async () => {
       const result = await toggleProductStatus(productId, !isActive);
-      if (result?.error) toast.error(result.error);
+      if ("error" in result) toast.error(result.error);
       else toast.success(isActive ? "Product hidden from storefront." : "Product is now active.");
     });
   }
@@ -21,7 +21,7 @@ export function ProductRowActions({ productId, isActive }: { productId: string; 
     if (!confirm("Remove this product? It will be hidden from the storefront but order history is kept.")) return;
     startTransition(async () => {
       const result = await deleteProduct(productId);
-      if (result?.error) toast.error(result.error);
+      if ("error" in result) toast.error(result.error);
       else toast.success("Product removed.");
     });
   }
