@@ -18,7 +18,7 @@ function handleDbError(err: unknown): { error: string } {
     return { error: `A product or variant with this ${field} already exists. Try a different SKU or slug.` };
   }
   console.error("Product save error:", err);
-  return { error: "Something went wrong while saving. Please try again." };
+  return { error: `Debug: ${err instanceof Error ? err.message : JSON.stringify(err)}` };
 }
 
 export async function createProduct(input: ProductInput) {
