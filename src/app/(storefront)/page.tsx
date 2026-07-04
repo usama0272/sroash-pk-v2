@@ -6,13 +6,18 @@ import { getHeroData, getActiveTestimonials, getActiveInstagramPosts } from "@/f
 import { getFeaturedProducts, getProducts } from "@/features/products/queries/get-products";
 
 export default async function HomePage() {
-  const [hero, featured, newArrivals, testimonials, instagramPosts] = await Promise.all([
+  const [hero, featured, newArrivalsResult, testimonials, instagramPosts] = await Promise.all([
     getHeroData(),
     getFeaturedProducts(8),
     getProducts({ newArrival: true, pageSize: 4 }),
     getActiveTestimonials(),
     getActiveInstagramPosts(),
   ]);
+
+  // Fallback: if nothing is flagged "new arrival" yet, just show the latest products instead.
+  const newArrivals = newArrivalsResult.products.length > 0
+    ? newArrivalsResult.products
+    : (await getProducts({ pageSize: 4 })).products;
 
   return (
     <>
@@ -22,7 +27,7 @@ export default async function HomePage() {
         title="New Arrivals"
         subtitle="Just Landed"
         viewAllHref="/collections/new-arrivals"
-        products={newArrivals.products}
+        products={newArrivals}
       />
 
       <FeaturedGrid
