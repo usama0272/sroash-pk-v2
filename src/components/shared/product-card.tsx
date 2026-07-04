@@ -3,12 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
+import { toast } from "sonner";
 import { formatPKR, cn } from "@/lib/utils";
 import { toggleWishlist } from "@/features/wishlist/actions/wishlist.actions";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 export interface ProductCardData {
   id: string;
@@ -27,6 +27,17 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
   const router = useRouter();
   const secondaryImage = product.gallery[0] ?? product.heroImage;
   const onSale = product.salePrice !== null && product.salePrice < product.price;
+
+  async function handleWishlistClick(e: React.MouseEvent) {
+    e.preventDefault();
+    const result = await toggleWishlist(product.id);
+    if (result.needsAuth) {
+      toast.error("Please sign in to save items.");
+      router.push("/login");
+      return;
+    }
+    setWishlisted(result.wishlisted ?? false);
+  }
 
   return (
     <motion.div
@@ -77,10 +88,7 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
 
           <button
             aria-label="Add to wishlist"
-            onClick={(e) => {
-              e.preventDefault();
-              setWishlisted((w) => !w);
-            }}
+            onClick={handleWishlistClick}
             className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-ivory/90 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           >
             <Heart className={cn("h-4 w-4", wishlisted && "fill-clay text-clay")} />
