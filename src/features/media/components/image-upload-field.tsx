@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { upload } from "@vercel/blob/client";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 
 function isVideo(url: string) {
@@ -27,13 +26,14 @@ export function ImageUploadField({
     setUploading(true);
     setError(null);
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
-      onChange(blob.url);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      onChange(data.url);
     } catch (err) {
-      setError((err as Error).message || "Upload failed.");
+      setError((err as Error).message);
     } finally {
       setUploading(false);
     }
