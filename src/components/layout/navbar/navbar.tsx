@@ -41,7 +41,7 @@ export function Navbar() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden xl:flex items-center gap-6 flex-1">
             {mainNav.map((item) => (
               <Link
                 key={item.href}
@@ -55,7 +55,7 @@ export function Navbar() {
 
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-widest text-charcoal"
+            className="font-display text-2xl tracking-widest text-charcoal shrink-0 xl:absolute xl:left-1/2 xl:-translate-x-1/2"
           >
             {siteConfig.name}
           </Link>
