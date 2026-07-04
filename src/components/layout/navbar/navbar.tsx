@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Heart, User, ShoppingBag, Menu } from "lucide-react";
-import { mainNav, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { MobileMenu } from "@/components/layout/navbar/mobile-menu";
@@ -33,29 +33,13 @@ export function Navbar() {
         )}
       >
         <div className="container-luxury flex h-20 items-center justify-between">
-          <button
-            aria-label="Open menu"
-            className="lg:hidden"
-            onClick={() => setMobileOpen(true)}
-          >
+          <button aria-label="Open menu" onClick={() => setMobileOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
 
-          <nav className="hidden xl:flex items-center gap-6 flex-1">
-            {mainNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-xs uppercase tracking-widest text-charcoal/80 hover:text-charcoal transition-colors duration-300"
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
-
           <Link
             href="/"
-            className="font-display text-2xl tracking-widest text-charcoal shrink-0 xl:absolute xl:left-1/2 xl:-translate-x-1/2"
+            className="absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-widest text-charcoal"
           >
             {siteConfig.name}
           </Link>
@@ -70,11 +54,7 @@ export function Navbar() {
             <Link href="/account" aria-label="Account" className="hover:opacity-60 transition-opacity">
               <User className="h-[18px] w-[18px]" />
             </Link>
-            <button
-              aria-label="Cart"
-              onClick={() => setCartOpen(true)}
-              className="relative hover:opacity-60 transition-opacity"
-            >
+            <button aria-label="Cart" onClick={() => setCartOpen(true)} className="relative hover:opacity-60 transition-opacity">
               <ShoppingBag className="h-[18px] w-[18px]" />
               <AnimatePresence>
                 {itemCount > 0 && (
