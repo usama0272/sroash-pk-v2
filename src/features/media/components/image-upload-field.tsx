@@ -1,8 +1,7 @@
 "use client";
 
-import { CldUploadWidget } from "next-cloudinary";
-import { ImagePlus, X } from "lucide-react";
 import Image from "next/image";
+import { X } from "lucide-react";
 
 export function ImageUploadField({
   label,
@@ -16,8 +15,8 @@ export function ImageUploadField({
   return (
     <div>
       <p className="mb-1.5 text-xs uppercase tracking-wide text-graphite">{label}</p>
-      {value ? (
-        <div className="relative aspect-[3/4] w-32 overflow-hidden border border-line">
+      {value && (
+        <div className="relative mb-2 aspect-[3/4] w-32 overflow-hidden border border-line">
           <Image src={value} alt={label} fill className="object-cover" sizes="128px" />
           <button
             type="button"
@@ -28,27 +27,15 @@ export function ImageUploadField({
             <X className="h-3 w-3" />
           </button>
         </div>
-      ) : (
-        <CldUploadWidget
-          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-          onSuccess={(result) => {
-            if (typeof result.info === "object" && result.info && "secure_url" in result.info) {
-              onChange(result.info.secure_url as string);
-            }
-          }}
-        >
-          {({ open }) => (
-            <button
-              type="button"
-              onClick={() => open()}
-              className="flex aspect-[3/4] w-32 flex-col items-center justify-center gap-2 border border-dashed border-line text-graphite hover:border-charcoal"
-            >
-              <ImagePlus className="h-5 w-5" />
-              <span className="text-xs">Upload</span>
-            </button>
-          )}
-        </CldUploadWidget>
       )}
+      <input
+        type="url"
+        placeholder="https://images.unsplash.com/..."
+        defaultValue={value ?? ""}
+        onBlur={(e) => onChange(e.target.value || null)}
+        className="input-luxury"
+      />
+      <p className="mt-1 text-[11px] text-graphite">Paste any image URL for now (Cloudinary upload can be wired up later).</p>
     </div>
   );
 }
