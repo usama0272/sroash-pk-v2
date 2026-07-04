@@ -6,11 +6,16 @@ import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
 import { getPaymentProvider } from "@/features/payments/payment-gateway";
 import { checkoutSchema, type CheckoutInput } from "@/features/checkout/validations/checkout.schema";
+import { headers } from "next/headers";
+import { checkRateLimit, checkoutRateLimiter } from "@/lib/rate-limit";
 
 const SHIPPING_FEE = 350;
 const FREE_SHIPPING_THRESHOLD = 15000;
 
 export async function placeOrder(input: CheckoutInput) {
+  const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
+  const allowed = await checkRateLimit(checkoutRateLimiter, ip);
+  if (!allowed) return { error: "Too many attempts. Please wait a moment and try again." };
   const parsed = checkoutSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid checkout data." };

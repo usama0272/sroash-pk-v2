@@ -3,6 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { headers } from "next/headers";
+import { checkRateLimit, authRateLimiter } from "@/lib/rate-limit";
 import { authConfig } from "@/lib/auth.config";
 
 const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(8) });
@@ -15,6 +17,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "credentials",
       credentials: { email: {}, password: {} },
       async authorize(raw) {
+        const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
+        const allowed = await checkRateLimit(authRateLimiter, ip);
+        if (!allowed) return null;
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
         const { email, password } = parsed.data;
