@@ -6,6 +6,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { formatPKR, cn } from "@/lib/utils";
+import { toggleWishlist } from "@/features/wishlist/actions/wishlist.actions";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export interface ProductCardData {
   id: string;
@@ -21,6 +24,7 @@ export interface ProductCardData {
 export function ProductCard({ product, priority = false }: { product: ProductCardData; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
+  const router = useRouter();
   const secondaryImage = product.gallery[0] ?? product.heroImage;
   const onSale = product.salePrice !== null && product.salePrice < product.price;
 
