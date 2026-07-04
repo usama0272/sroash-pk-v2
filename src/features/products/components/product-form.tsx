@@ -9,6 +9,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { productSchema, type ProductInput } from "@/features/products/validations/product.schema";
 import { createProduct, updateProduct } from "@/features/products/actions/product.actions";
 import { ImageUploadField } from "@/features/media/components/image-upload-field";
+import { GalleryUploadField } from "@/features/media/components/gallery-upload-field";
 import { slugify } from "@/lib/utils";
 import type { Category } from "@prisma/client";
 
@@ -44,6 +45,7 @@ export function ProductForm({
 
   const { fields, append, remove } = useFieldArray({ control, name: "variants" });
   const heroImage = watch("heroImage");
+  const gallery = watch("gallery");
   const name = watch("name");
 
   function onSubmit(values: ProductInput) {
@@ -130,6 +132,9 @@ export function ProductForm({
           onChange={(url) => setValue("heroImage", url ?? "")}
         />
         {errors.heroImage && <p className="text-xs text-red-600">{errors.heroImage.message}</p>}
+        <div className="mt-4">
+          <GalleryUploadField label="Additional Photos" values={gallery ?? []} onChange={(urls) => setValue("gallery", urls)} />
+        </div>
       </section>
 
       <section className="space-y-4">

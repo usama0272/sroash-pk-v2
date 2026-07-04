@@ -6,18 +6,16 @@ import { getHeroData, getActiveTestimonials, getActiveInstagramPosts } from "@/f
 import { getFeaturedProducts, getProducts } from "@/features/products/queries/get-products";
 
 export default async function HomePage() {
-  const [hero, featured, newArrivalsResult, testimonials, instagramPosts] = await Promise.all([
+  const [hero, featured, newArrivalsResult, allProducts, testimonials, instagramPosts] = await Promise.all([
     getHeroData(),
     getFeaturedProducts(8),
     getProducts({ newArrival: true, pageSize: 4 }),
+    getProducts({ pageSize: 24 }),
     getActiveTestimonials(),
     getActiveInstagramPosts(),
   ]);
 
-  // Fallback: if nothing is flagged "new arrival" yet, just show the latest products instead.
-  const newArrivals = newArrivalsResult.products.length > 0
-    ? newArrivalsResult.products
-    : (await getProducts({ pageSize: 4 })).products;
+  const newArrivals = newArrivalsResult.products.length > 0 ? newArrivalsResult.products : allProducts.products.slice(0, 4);
 
   return (
     <>
@@ -35,6 +33,13 @@ export default async function HomePage() {
         subtitle="Editor's Pick"
         viewAllHref="/collections"
         products={featured}
+      />
+
+      <FeaturedGrid
+        title="Shop All"
+        subtitle="The Full Collection"
+        viewAllHref="/collections"
+        products={allProducts.products}
       />
 
       <TestimonialsSection testimonials={testimonials} />
