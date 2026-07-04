@@ -45,6 +45,7 @@ export function ProductForm({
 
   const { fields, append, remove } = useFieldArray({ control, name: "variants" });
   const heroImage = watch("heroImage");
+  const sizeChart = watch("sizeChart");
   const gallery = watch("gallery");
   const name = watch("name");
 
@@ -132,6 +133,9 @@ export function ProductForm({
           onChange={(url) => setValue("heroImage", url ?? "")}
         />
         {errors.heroImage && <p className="text-xs text-red-600">{errors.heroImage.message}</p>}
+        <div className="mt-4">
+          <ImageUploadField label="Size Chart (optional)" value={sizeChart ?? null} onChange={(url) => setValue("sizeChart", url)} />
+        </div>
         <div className="mt-4">
           <GalleryUploadField label="Additional Photos" values={gallery ?? []} onChange={(urls) => setValue("gallery", urls)} />
         </div>

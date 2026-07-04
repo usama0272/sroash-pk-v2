@@ -136,6 +136,7 @@ model Product {
   description   String   @db.Text
   fabric        String?
   careInstructions String?
+  sizeChart     String?
   sku           String   @unique
 
   price         Decimal  @db.Decimal(10, 2)

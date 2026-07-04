@@ -6,7 +6,10 @@ import { cn, formatPKR } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import type { ProductVariant } from "@prisma/client";
 
+import { SizeChartModal } from "@/features/products/components/size-chart-modal";
+
 interface Props {
+  sizeChartUrl?: string | null;
   productId: string;
   slug: string;
   name: string;
@@ -15,7 +18,7 @@ interface Props {
   variants: ProductVariant[];
 }
 
-export function AddToCartForm({ productId, slug, name, image, price, variants }: Props) {
+export function AddToCartForm({ productId, slug, name, image, price, variants, sizeChartUrl }: Props) {
   const sizes = useMemo(() => Array.from(new Set(variants.map((v) => v.size))), [variants]);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
@@ -59,7 +62,10 @@ export function AddToCartForm({ productId, slug, name, image, price, variants }:
   return (
     <div className="space-y-6">
       <div>
-        <p className="eyebrow mb-3">Size</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">Size</p>
+          {sizeChartUrl && <SizeChartModal imageUrl={sizeChartUrl} />}
+        </div>
         <div className="flex flex-wrap gap-2">
           {sizes.map((size) => (
             <button

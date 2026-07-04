@@ -79,6 +79,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               image={product.heroImage}
               price={salePrice ?? price}
               variants={product.variants}
+              sizeChartUrl={product.sizeChart}
             />
           </div>
 
@@ -154,3 +155,4 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     </div>
   );
 }
+
