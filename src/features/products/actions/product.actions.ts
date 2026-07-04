@@ -79,34 +79,55 @@ export async function updateProduct(id: string, input: ProductInput) {
     const slugConflict = await db.product.findFirst({ where: { slug: data.slug, id: { not: id } } });
     if (slugConflict) return { error: "Another product already uses this slug." };
 
-    await db.$transaction([
-      db.productVariant.deleteMany({ where: { productId: id } }),
-      db.product.update({
-        where: { id },
-        data: {
-          name: data.name,
-          slug: data.slug,
-          description: data.description,
-          fabric: data.fabric,
-          careInstructions: data.careInstructions,
-          sku: data.sku,
-          price: data.price,
-          salePrice: data.salePrice ?? null,
-          heroImage: data.heroImage,
-          sizeChart: data.sizeChart ?? null,
-          gallery: data.gallery,
-          categoryId: data.categoryId,
-          isFeatured: data.isFeatured,
-          isNewArrival: data.isNewArrival,
-          isActive: data.isActive,
-          isMadeToOrder: data.isMadeToOrder,
-          seoTitle: data.seoTitle,
-          seoDescription: data.seoDescription,
-          tags: data.tags,
-          variants: { create: data.variants },
-        },
-      }),
-    ]);
+    // Reconcile variants without breaking foreign keys from past orders:
+    // - variants no longer submitted are only deleted if they have no order history
+    // - variants matching an existing SKU are updated in place
+    // - new SKUs are created fresh
+    const existingVariants = await db.productVariant.findMany({ where: { productId: id } });
+    const submittedSkus = new Set(data.variants.map((v) => v.sku));
+
+    for (const variant of existingVariants) {
+      if (!submittedSkus.has(variant.sku)) {
+        const orderItemCount = await db.orderItem.count({ where: { variantId: variant.id } });
+        if (orderItemCount === 0) {
+          await db.productVariant.delete({ where: { id: variant.id } });
+        }
+        // else: keep it  it's tied to real order history, just no longer shown in the form
+      }
+    }
+
+    for (const variant of data.variants) {
+      await db.productVariant.upsert({
+        where: { sku: variant.sku },
+        update: { size: variant.size, color: variant.color, colorHex: variant.colorHex, stock: variant.stock, productId: id },
+        create: { ...variant, productId: id },
+      });
+    }
+
+    await db.product.update({
+      where: { id },
+      data: {
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        fabric: data.fabric,
+        careInstructions: data.careInstructions,
+        sku: data.sku,
+        price: data.price,
+        salePrice: data.salePrice ?? null,
+        heroImage: data.heroImage,
+        sizeChart: data.sizeChart ?? null,
+        gallery: data.gallery,
+        categoryId: data.categoryId,
+        isFeatured: data.isFeatured,
+        isNewArrival: data.isNewArrival,
+        isActive: data.isActive,
+        isMadeToOrder: data.isMadeToOrder,
+        seoTitle: data.seoTitle,
+        seoDescription: data.seoDescription,
+        tags: data.tags,
+      },
+    });
 
     await logAudit(session.user.id, "UPDATE", "Product", id, { name: data.name });
     revalidatePath("/admin/products");
