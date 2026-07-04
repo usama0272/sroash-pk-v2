@@ -10,6 +10,17 @@ async function logAudit(userId: string, action: string, entity: string, entityId
   await db.auditLog.create({ data: { userId, action, entity, entityId, meta } });
 }
 
+function handleDbError(err: unknown): { error: string } {
+  if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return { error: err.message };
+  if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+    const meta = "meta" in err ? (err.meta as { target?: string[] } | undefined) : undefined;
+    const field = meta?.target?.join(", ") ?? "field";
+    return { error: `A product or variant with this ${field} already exists. Try a different SKU or slug.` };
+  }
+  console.error("Product save error:", err);
+  return { error: "Something went wrong while saving. Please try again." };
+}
+
 export async function createProduct(input: ProductInput) {
   try {
     const session = await requirePermission(PERMISSIONS.PRODUCTS_CREATE);
@@ -51,8 +62,7 @@ export async function createProduct(input: ProductInput) {
     revalidatePath("/collections");
     return { data: product };
   } catch (err) {
-    if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return { error: err.message };
-    throw err;
+    return handleDbError(err);
   }
 }
 
@@ -65,6 +75,9 @@ export async function updateProduct(id: string, input: ProductInput) {
 
     const existing = await db.product.findUnique({ where: { id } });
     if (!existing) return { error: "Product not found." };
+
+    const slugConflict = await db.product.findFirst({ where: { slug: data.slug, id: { not: id } } });
+    if (slugConflict) return { error: "Another product already uses this slug." };
 
     await db.$transaction([
       db.productVariant.deleteMany({ where: { productId: id } }),
@@ -80,7 +93,7 @@ export async function updateProduct(id: string, input: ProductInput) {
           price: data.price,
           salePrice: data.salePrice ?? null,
           heroImage: data.heroImage,
-        sizeChart: data.sizeChart ?? null,
+          sizeChart: data.sizeChart ?? null,
           gallery: data.gallery,
           categoryId: data.categoryId,
           isFeatured: data.isFeatured,
@@ -100,8 +113,7 @@ export async function updateProduct(id: string, input: ProductInput) {
     revalidatePath(`/products/${data.slug}`);
     return { data: { id } };
   } catch (err) {
-    if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return { error: err.message };
-    throw err;
+    return handleDbError(err);
   }
 }
 
@@ -111,15 +123,13 @@ export async function deleteProduct(id: string) {
     const product = await db.product.findUnique({ where: { id } });
     if (!product) return { error: "Product not found." };
 
-    // Soft-delete: preserve historical order references, hide from storefront.
     await db.product.update({ where: { id }, data: { isActive: false } });
 
     await logAudit(session.user.id, "DELETE", "Product", id, { name: product.name });
     revalidatePath("/admin/products");
     return { data: { id } };
   } catch (err) {
-    if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return { error: err.message };
-    throw err;
+    return handleDbError(err);
   }
 }
 
@@ -131,7 +141,6 @@ export async function toggleProductStatus(id: string, isActive: boolean) {
     revalidatePath("/admin/products");
     return { data: { id, isActive } };
   } catch (err) {
-    if (err instanceof UnauthorizedError || err instanceof ForbiddenError) return { error: err.message };
-    throw err;
+    return handleDbError(err);
   }
 }
