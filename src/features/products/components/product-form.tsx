@@ -52,7 +52,7 @@ export function ProductForm({
   function onSubmit(values: ProductInput) {
     startTransition(async () => {
       const result = productId ? await updateProduct(productId, values) : await createProduct(values);
-      if (result.error) {
+      if ("error" in result) {
         toast.error(result.error);
       } else {
         toast.success(productId ? "Product updated." : "Product created.");
