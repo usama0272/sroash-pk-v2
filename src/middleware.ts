@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const ADMIN_ROLES = new Set(["ADMIN", "SUPER_ADMIN"]);
 const SUPER_ADMIN_ONLY_PREFIXES = ["/admin/users", "/admin/roles-permissions", "/admin/settings"];
